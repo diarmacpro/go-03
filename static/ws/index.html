@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>WebSocket Channel Test</title>
+  <style>
+    body { font-family: sans-serif; padding: 1rem; }
+    input { margin: 0.2rem; padding: 0.4rem; }
+    button { padding: 0.4rem 0.8rem; }
+    pre { background: #f3f3f3; padding: 1rem; border-radius: 5px; max-height: 400px; overflow-y: auto; }
+  </style>
+</head>
+<body>
+  <h3>Masuk Channel</h3>
+  <input id="channel" placeholder="channel (contoh: a)" />
+  <input id="id" placeholder="id kamu (contoh: nadia)" />
+  <button onclick="join()">Gabung</button>
+  <hr />
+  <input id="msg" placeholder="ketik pesan..." />
+  <button onclick="send()">Kirim</button>
+
+  <pre id="log"></pre>
+
+  <script>
+    let ws;
+    let userId = "";
+
+    function log(msg) {
+      const logEl = document.getElementById('log');
+      logEl.textContent += msg + '\n';
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function join() {
+      const channel = document.getElementById('channel').value.trim();
+      userId = document.getElementById('id').value.trim();
+
+      if (!channel || !userId) {
+        alert("Isi channel dan id terlebih dahulu!");
+        return;
+      }
+
+      const wsURL = `wss://${location.host}/ws/room?channel=${encodeURIComponent(channel)}&id=${encodeURIComponent(userId)}`;
+      ws = new WebSocket(wsURL);
+
+      ws.onopen = () => log(`🔌 Terhubung ke channel "${channel}" sebagai "${userId}"`);
+
+      ws.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          console.log("📥 Diterima dari server:", data); // ✅ tampilkan ke console
+
+          const sender = data["id-user"] || "(tanpa id)";
+          const payload = data.message;
+
+          const prefix = sender === userId ? "📤 [SEND]" : "📨 [RECV]";
+          const pretty = JSON.stringify(payload, null, 2);
+
+          log(`${prefix} dari "${sender}":\n${pretty}`);
+        } catch (err) {
+          console.warn("⚠️ JSON parsing error", e.data);
+          log("⚠️ Data tidak valid:\n" + e.data);
+        }
+      };
+
+      ws.onclose = () => log("❌ Koneksi ditutup");
+      ws.onerror = (err) => log("⚠️ Error: " + err.message);
+    }
+
+    function send() {
+      const text = document.getElementById('msg').value.trim();
+      if (!text) return;
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        const payload = {
+          text: text,
+          waktu: new Date().toISOString()
+        };
+        const json = JSON.stringify(payload);
+        console.log("📤 Mengirim ke server:", payload); // ✅ tampilkan ke console
+        ws.send(json);
+        document.getElementById('msg').value = '';
+      } else {
+        log("⚠️ Belum terhubung ke channel.");
+      }
+    }
+  </script>
+</body>
+</html>

@@ -7,6 +7,10 @@ import (
 // /static/*
 func StaticFileHandler(w http.ResponseWriter, r *http.Request) {
 	relPath := r.URL.Path[len("/static/"):]
+	if relPath == "" {
+		relPath = "index.html"
+	}
+
 	fullPath := "static/" + relPath
 
 	f, err := http.Dir("static").Open(relPath)
