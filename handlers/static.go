@@ -4,6 +4,7 @@ import (
 	"net/http"
 )
 
+// /static/*
 func StaticFileHandler(w http.ResponseWriter, r *http.Request) {
 	relPath := r.URL.Path[len("/static/"):]
 	fullPath := "static/" + relPath
